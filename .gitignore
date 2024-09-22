@@ -98,3 +98,6 @@ dmypy.json
 
 # macOS specific
 .DS_Store
+
+# SQLite DB File
+/db.sqlite
