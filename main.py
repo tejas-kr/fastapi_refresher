@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Path, Query, Depends
-from sqlmodel import Session
+from sqlmodel import Session, select
 from contextlib import asynccontextmanager
 from typing import Optional, Annotated
 from models import (
@@ -28,30 +28,36 @@ BANDS = [
 ]
 
 
-# @app.get("/bands")
-# async def get_all_bands(
-#     genre: Optional[GenreURLChoices] = None,
-#     q: Annotated[Optional[str], Query(max_length=10)] = None
-# ) -> list[BandBase]:
-#     bands = [BandBase(**b) for b in BANDS]
-#     if genre:
-#         bands = [b for b in bands if b.genre.value == genre.value.lower()]
-#     if q:
-#         bands = [b for b in bands if q.lower() in b.name.lower()]
-#     return bands
-#
-#
-# @app.get('/bands/{band_id}')
-# async def get_band(band_id: Annotated[int, Path(description="The band Id")]) -> BandBase:
-#     band = next((BandBase(**b) for b in BANDS if b['id'] == band_id), None)
-#     if not band:
-#         raise HTTPException(
-#             status_code=404,
-#             detail="Band Id not found"
-#         )
-#     return band
-#
-#
+@app.get("/bands")
+async def get_all_bands(
+    genre: Optional[GenreURLChoices] = None,
+    q: Annotated[Optional[str], Query(max_length=10)] = None,
+    session: Session = Depends(get_session)
+) -> list[Band]:
+    bands = session.exec(select(Band)).all()
+    print("all bands:", bands)
+    if genre:
+        bands = [b for b in bands if b.genre.value == genre.value.lower()]
+    if q:
+        bands = [b for b in bands if q.lower() in b.name.lower()]
+    return bands
+
+
+@app.get('/bands/{band_id}')
+async def get_band(
+    band_id: Annotated[int, Path(title="The band Id")],
+    session: Session = Depends(get_session)
+) -> Band:
+    band: Band = session.get(Band, band_id)
+    print("band details:", band)
+    if not band:
+        raise HTTPException(
+            status_code=404,
+            detail="Band Id not found"
+        )
+    return band
+
+
 @app.post('/bands')
 async def create_band(
     band_data: BandCreate,
