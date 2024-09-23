@@ -1,15 +1,18 @@
-from fastapi import FastAPI, HTTPException, Path, Query, Depends
-from sqlmodel import Session, select
-from contextlib import asynccontextmanager
-from typing import Optional, Annotated
-from models import (
-    GenreURLChoices, BandBase, BandCreate, Band, Album
-)
 from db import init_db, get_session
+from sqlmodel import Session, select
+from typing import Optional, Annotated
+from contextlib import asynccontextmanager
+from models import GenreURLChoices, BandCreate, Band, Album
+from fastapi import FastAPI, HTTPException, Path, Query, Depends
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    lifespan start event to start and create db
+    :param app: app context
+    :return:
+    """
     init_db()
     yield
 
@@ -22,6 +25,13 @@ async def get_all_bands(
     q: Annotated[Optional[str], Query(max_length=10)] = None,
     session: Session = Depends(get_session)
 ) -> list[Band]:
+    """
+    Get the list of all bands.
+    :param genre: Genre of band
+    :param q: Query on band name
+    :param session: DB Session
+    :return: Json List of bands
+    """
     bands = session.exec(select(Band)).all()
     print("all bands:", bands)
     if genre:
@@ -36,6 +46,12 @@ async def get_band(
     band_id: Annotated[int, Path(title="The band Id")],
     session: Session = Depends(get_session)
 ) -> Band:
+    """
+    Get a particular band by band Id
+    :param band_id: Band Id
+    :param session: DB Session
+    :return: A particular band details in Json
+    """
     band: Band = session.get(Band, band_id)
     print("band details:", band)
     if not band:
@@ -51,6 +67,12 @@ async def create_band(
     band_data: BandCreate,
     session: Session = Depends(get_session)
 ) -> Band:
+    """
+    Create a new band and add albums to it.
+    :param band_data: Band Data in Json
+    :param session: DB Session
+    :return: Added band data
+    """
     band = Band(name=band_data.name, genre=band_data.genre)
     session.add(band)
 
